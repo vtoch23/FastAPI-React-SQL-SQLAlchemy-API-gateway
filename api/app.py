@@ -26,6 +26,7 @@ logger = logging.getLogger("uvicorn.error")
 
 SECRET_KEY = os.getenv("API_KEY")
 
+
 @app.get('/', response_model=List[NameOut], status_code=200)
 @limiter.limit("5/minute")
 async def get_names(request: Request, db: AsyncSession = Depends(get_db)):
@@ -95,8 +96,6 @@ async def get_names(request: Request, person: Annotated[NameOut, Form()], db: As
         db.add(new_person)
         await db.commit()
         await db.refresh(new_person)
-        # stmt = insert(models.Person).values(first_name=person.first_name, last_name=person.last_name, age=person.age, address=person.address)
-        # await db.execute(stmt)
         duration = time.perf_counter() - start
         logger.info(f"DB Query TimeL {duration:.2f} seconds")
         return RedirectResponse(url=f"/", status_code=status.HTTP_303_SEE_OTHER)
