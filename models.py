@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+
 class Person(Base):
     __tablename__=os.getenv("TABLE_NAME")
     fid = Column(BigInteger, primary_key=True, index=True)

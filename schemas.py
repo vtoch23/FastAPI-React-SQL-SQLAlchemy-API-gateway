@@ -10,6 +10,7 @@ class NameDataBase(BaseModel):
 class NameData(NameDataBase):
     class Config:
         orm_mode = True
+
 class NameOut(BaseModel):
     first_name: str = Field()
     last_name: str = Field()
