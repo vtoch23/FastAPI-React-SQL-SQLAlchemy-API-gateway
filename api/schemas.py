@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
+
 class NameDataBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     fid: int = Field()
