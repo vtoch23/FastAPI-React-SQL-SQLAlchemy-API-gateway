@@ -1,0 +1,13 @@
+asyncpg>=0.27
+fastapi
+greenlet
+limits
+psycopg2-binary
+pydantic
+pydantic-settings
+python-dotenv
+python-multipart
+requests
+slowapi
+sqlalchemy[asyncio]
+uvicorn
