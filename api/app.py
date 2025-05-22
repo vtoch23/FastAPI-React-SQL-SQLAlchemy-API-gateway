@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, status, Form, Header, Path
+from fastapi import FastAPI, HTTPException, Depends, Request, status, Form, Header, Path, APIRouter, Query
 from fastapi.responses import RedirectResponse
 from typing import List, Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,10 +16,16 @@ import uvicorn
 import time
 import models
 from fastapi.middleware.cors import CORSMiddleware
+from dependencies import verify_api_key
+
 
 origins = ["http://localhost:5173"]  # Vite default port
 
-
+router = APIRouter(
+    prefix="/persons",
+    tags=["persons"],
+    dependencies=[Depends(verify_api_key)]
+)
 
 load_dotenv()
 
@@ -38,19 +44,13 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 logger = logging.getLogger("uvicorn.error")
 
-SECRET_KEY = os.getenv("API_KEY")
-
-def verify_api_key(api_key: str = Header(...)):
-    if api_key != SECRET_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing API key"
-        )
-
 
 @app.get('/', response_model=List[NameOut], status_code=200)
 @limiter.limit("5/minute")
-async def get_names(request: Request,  db: AsyncSession = Depends(get_db), _ = Depends(verify_api_key)):
+async def get_names(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
     start = time.perf_counter()
     names = (
         select(
@@ -69,7 +69,11 @@ async def get_names(request: Request,  db: AsyncSession = Depends(get_db), _ = D
 
 @app.get('/get-name', response_model=List[NameOut], status_code=200)
 @limiter.limit("5/minute")
-async def get_name(request: Request, first_name: str, _ = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
+async def get_name(
+    request: Request,
+    first_name: str, 
+    db: AsyncSession = Depends(get_db)
+):
     if first_name:
         start = time.perf_counter()
         names = (
@@ -85,6 +89,10 @@ async def get_name(request: Request, first_name: str, _ = Depends(verify_api_key
             .limit(10)
         )
         result = await db.execute(names)
+
+        if not result:
+            raise HTTPException(status_code=404, detail="No persons found with that name")
+
         return result.mappings().all()
 
 
@@ -92,7 +100,11 @@ from schemas import NameData  # This is the input schema (not NameOut)
 
 @app.post('/add-name',  status_code=200)
 @limiter.limit("5/minute")
-async def add_name(request: Request, person: NameData, _ = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
+async def delete_name(
+    request: Request,
+    person: NameData, 
+    db: AsyncSession = Depends(get_db)
+):
     new_person = models.Person(
         first_name=person.first_name,
         last_name=person.last_name,
@@ -112,7 +124,6 @@ async def add_name(request: Request, person: NameData, _ = Depends(verify_api_ke
 async def delete_name(
     request: Request,
     fid: int = Path(..., gt=0), 
-    _ = Depends(verify_api_key),
     db: AsyncSession = Depends(get_db)
 ):
     person = await db.get(models.Person, fid)
