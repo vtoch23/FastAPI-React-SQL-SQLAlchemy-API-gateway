@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 
-<Link to="/add">Go to Add</Link>
-
+const apiKey = import.meta.env.VITE_API_KEY;
+const baseUrl = import.meta.env.VITE_API_URL;
 
 export default function AddName() {
   const [formData, setFormData] = useState({
@@ -11,54 +10,97 @@ export default function AddName() {
     age: "",
     address: ""
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-  
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "age" ? Number(value) : value
+      [e.target.name]: e.target.value
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const apiKey = import.meta.env.VITE_API_KEY;
-    console.log("Submitting data:", formData);
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
     try {
-      const response = await fetch("http://localhost:8000/add-name", {
+      const response = await fetch(`${baseUrl}/add-name`, {
         method: "POST",
         headers: {
           "api-key": apiKey,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          age: Number(formData.age), // make sure age is number
+        }),
       });
 
       if (response.ok) {
-        alert("Person added successfully!");
-        setFormData({ first_name: "", last_name: "", age: 0, address: "" });
+        setSuccess("Person added successfully!");
+        setFormData({ first_name: "", last_name: "", age: "", address: "" });
       } else {
         const err = await response.json();
-        console.error("Error response from backend:", err);
-        alert("Failed to add person: " + JSON.stringify(err.detail));
-
+        setError(err.detail || "Failed to add person");
       }
     } catch (err) {
-      alert("Error: " + err.message);
+      setError(err.message);
     }
+    setLoading(false);
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Add New Person</h1>
+    <div className="max-w-md mx-auto p-6 bg-white rounded shadow mt-6">
+      <h1 className="text-2xl font-bold mb-6 text-center">Add New Person</h1>
+
+      {error && <p className="text-red-600 mb-4 font-medium text-center">{error}</p>}
+      {success && <p className="text-green-600 mb-4 font-medium text-center">{success}</p>}
+
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input name="first_name" placeholder="First Name" onChange={handleChange} className="border p-2 block w-full" />
-        <input name="last_name" placeholder="Last Name" onChange={handleChange} className="border p-2 block w-full" />
-        <input name="age" placeholder="Age" type="number" onChange={handleChange} className="border p-2 block w-full" />
-        <input name="address" placeholder="Address" onChange={handleChange} className="border p-2 block w-full" />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          Submit
+        <input
+          name="first_name"
+          placeholder="First Name"
+          value={formData.first_name}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          name="last_name"
+          placeholder="Last Name"
+          value={formData.last_name}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          name="age"
+          type="number"
+          placeholder="Age"
+          value={formData.age}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+          min={0}
+        />
+        <input
+          name="address"
+          placeholder="Address"
+          value={formData.address}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? "Adding..." : "Submit"}
         </button>
       </form>
     </div>
